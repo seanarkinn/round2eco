@@ -11,11 +11,11 @@ as a group. It uses Python as its coding language and other tools to keep it sim
 - Runs in your **browser** (via Flet browser mode)
 
  ** Sprint 2 prototype** featuring (7/11/25):
- -Weekly Point Tracking Chart - Visual representation of your daily eco-points over the last 7 days
- -Achievement System - Earn badges for reaching point milestones (50, 100, 200, etc.)
- -Weekly Point Cap - 1000 point limit per week to encourage consistent daily actions
- -Enhanced UI Layout - Two-column design with achievements and stats sidebar
- -Improved Data Visualization - Interactive charts showing your progress
+- Weekly Point Tracking Chart - Visual representation of your daily eco-points over the last 7 days
+- Achievement System - Earn badges for reaching point milestones (50, 100, 200, etc.)
+- Weekly Point Cap - 1000 point limit per week to encourage consistent daily actions
+- Enhanced UI Layout - Two-column design with achievements and stats sidebar
+- Improved Data Visualization - Interactive charts showing your progress
 
 ## 🔧 How to Run
 
