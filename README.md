@@ -17,7 +17,7 @@ as a group. It uses Python as its coding language and other tools to keep it sim
 - Enhanced UI Layout - Two-column design with achievements and stats sidebar
 - Improved Data Visualization - Interactive charts showing your progress
 
-  **Sprint 3 prototype** featuring (7/19/25):
+**Sprint 3 prototype** featuring (7/19/25):
 -  Refactored Code to Object-Oriented Design - Separated logic into well-structured classes: EcoTrackerUI, EcoDatabase, AchievementManager, ChartGenerator, etc.
 -  Basic Challenges - Monthly challenges like "Complete 20 eco actions" with updating progress
 -  Instant UI Feedback on Action Logging - Fixed delayed bug, the progress bars now update immediately
