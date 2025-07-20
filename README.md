@@ -26,7 +26,6 @@ as a group. It uses Python as its coding language and other tools to keep it sim
 ## 🔧 How to Run
 
 1. Open a terminal
-2. Install Flet (pip install flet)
-3. Install matplotlib (pip install matplotlib)
-4. Run python db.py to initialize local database
-5. Run python main.py
+2. Install Flet, matplotlib, fastapi, pydantic, uvicorn (pip install flet matplotlib fastapi pydantic uvicorn)
+5. Run python db.py to initialize local database
+6. Run python main.py
