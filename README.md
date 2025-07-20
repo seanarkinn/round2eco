@@ -23,6 +23,13 @@ as a group. It uses Python as its coding language and other tools to keep it sim
 -  Instant UI Feedback on Action Logging - Fixed delayed bug, the progress bars now update immediately
 -  Dynamic Challenge Cards - Each challenge displays description, date range, live action count, and % complete.
 
+**Sprint 4 prototype** featuring (7/21/25):
+-  New Challenge System - More Challenges and Improved Dynamic Tracking
+-  Environmental Impact Tracker - CO2, gas savings calculations
+-  Streak System -  Daily engagement tracking
+-  UI Polishing - Better UI
+-  Tab Bar - Added Actions, Challenges, and Stats
+
 ## 🔧 How to Run
 
 1. Open a terminal
