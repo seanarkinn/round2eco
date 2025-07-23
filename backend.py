@@ -1,12 +1,27 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
 import uvicorn
 from datetime import datetime
-from db import EcoTracker, EcoAction, Challenge
+from db import EcoTracker, EcoAction, Challenge, User 
 
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+class AuthResponse(BaseModel):
+    status: str
+    message: str
+    user_id: Optional[int] = None
+    username: Optional[str] = None
 
 class ActionRequest(BaseModel):
+    user_id: int
     action: str
     points: int
 
@@ -29,12 +44,55 @@ class ImpactResponse(BaseModel):
     trees_equivalent: int
 
 class EcoBackendService:
-    
     def __init__(self):
         self.tracker = EcoTracker()
     
+    def register_user(self, username: str, password: str) -> Dict[str, Any]:
+        """Register a new user"""
+        try:
+            user = self.tracker.user_manager.create_user(username, password)
+            if user:
+                return {
+                    "status": "success",
+                    "message": "User registered successfully",
+                    "user_id": user.id,
+                    "username": user.username
+                }
+            else:
+                return {
+                    "status": "error",
+                    "message": "Username already exists or registration failed"
+                }
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": f"Registration error: {str(e)}"
+            }
 
-    def log_eco_action(self, action: str, points: int) -> Dict[str, Any]:
+    def login_user(self, username: str, password: str) -> Dict[str, Any]:
+        """Authenticate user login"""
+        try:
+            user = self.tracker.user_manager.authenticate_user(username, password)
+            if user:
+                return {
+                    "status": "success",
+                    "message": "Login successful",
+                    "user_id": user.id,
+                    "username": user.username
+                }
+            else:
+                return {
+                    "status": "error",
+                    "message": "Invalid username or password"
+                }
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": f"Login error: {str(e)}"
+            }
+
+    def log_eco_action(self, user_id: int, action: str, points: int) -> Dict[str, Any]: 
+        """Log an eco-friendly action"""
         try:
             if not action or not action.strip():
                 raise ValueError("Action cannot be empty")
@@ -42,6 +100,7 @@ class EcoBackendService:
             if points <= 0:
                 raise ValueError("Points must be positive")
             
+            self.tracker.set_current_user(user_id)
             success = self.tracker.log_action(action.strip(), points)
             
             if success:
@@ -64,13 +123,13 @@ class EcoBackendService:
                 "status": "error",
                 "message": f"Internal error: {str(e)}"
             }
-    
 
-    def get_user_stats(self) -> Dict[str, Any]:
+    def get_user_stats(self, user_id: int) -> Dict[str, Any]:
+        """Get comprehensive user statistics"""
         try:
+            self.tracker.set_current_user(user_id)
             stats = self.tracker.get_stats()
             current_streak, longest_streak = stats['streak_data']
-        
             weekly_impact = stats['weekly_impact']
             total_impact = stats['total_impact']
         
@@ -102,11 +161,12 @@ class EcoBackendService:
                 "status": "error",
                 "message": f"Failed to get stats: {str(e)}"
             }
-    
 
-    def get_challenges(self) -> Dict[str, Any]:
+    def get_challenges(self, user_id: int) -> Dict[str, Any]: 
+        """Get user challenges"""
         try:
-            challenges = self.tracker.challenge_manager.get_challenges()
+            self.tracker.set_current_user(user_id)
+            challenges = self.tracker.challenge_manager.get_challenges(user_id)
             formatted_challenges = []
             
             for name, desc, current, target, completed in challenges:
@@ -128,10 +188,11 @@ class EcoBackendService:
                 "status": "error",
                 "message": f"Failed to get challenges: {str(e)}"
             }
-    
 
-    def reset_user_data(self) -> Dict[str, Any]:
+    def reset_user_data(self, user_id: int) -> Dict[str, Any]: 
+        """Reset all user data"""
         try:
+            self.tracker.set_current_user(user_id)
             success = self.tracker.reset_all_data()
             if success:
                 return {
@@ -149,9 +210,7 @@ class EcoBackendService:
                 "message": f"Reset failed: {str(e)}"
             }
 
-
 class EcoBackendApp:
-    
     def __init__(self):
         self.app = FastAPI(
             title="Eco Tracker API",
@@ -160,77 +219,112 @@ class EcoBackendApp:
         )
         self.service = EcoBackendService()
         self._setup_routes()
+        self._setup_middleware()
     
-
+    def _setup_middleware(self):
+        """Setup CORS and other middleware"""
+        from fastapi.middleware.cors import CORSMiddleware
+        
+        self.app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+    
     def _setup_routes(self):
+        """Setup all API routes"""
         
         @self.app.get("/")
         async def root():
             return {
-                "message": "Eco backend working!",
+                "message": "Round-2-Eco Backend API is running!",
                 "version": "2.0.0",
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
+                "database": "CSV File System"
             }
         
+        @self.app.post("/register", response_model=AuthResponse)
+        async def register(request: RegisterRequest):
+            result = self.service.register_user(request.username, request.password)
+            if result["status"] == "error":
+                raise HTTPException(status_code=400, detail=result["message"])
+            return AuthResponse(**result)
+
+        @self.app.post("/login", response_model=AuthResponse)
+        async def login(request: LoginRequest):
+            result = self.service.login_user(request.username, request.password)
+            if result["status"] == "error":
+                raise HTTPException(status_code=401, detail=result["message"])
+            return AuthResponse(**result)
 
         @self.app.post("/log", response_model=ActionResponse)
         async def log_action(action_data: ActionRequest):
-            result = self.service.log_eco_action(action_data.action, action_data.points)
+            result = self.service.log_eco_action(
+                action_data.user_id, 
+                action_data.action, 
+                action_data.points
+            )
             
             if result["status"] == "error":
                 raise HTTPException(status_code=400, detail=result["message"])
             
             return ActionResponse(**result)
         
-
-        @self.app.get("/stats")
-        async def get_stats():
-            result = self.service.get_user_stats()
+        @self.app.get("/stats/{user_id}")
+        async def get_stats(user_id: int):
+            result = self.service.get_user_stats(user_id)
             
             if result["status"] == "error":
                 raise HTTPException(status_code=500, detail=result["message"])
             
             return result
         
-
-        @self.app.get("/challenges")
-        async def get_challenges():
-            result = self.service.get_challenges()
+        @self.app.get("/challenges/{user_id}")
+        async def get_challenges(user_id: int):
+            result = self.service.get_challenges(user_id)
             
             if result["status"] == "error":
                 raise HTTPException(status_code=500, detail=result["message"])
             
             return result
         
-
-        @self.app.post("/reset")
-        async def reset_data():
-            result = self.service.reset_user_data()
+        @self.app.post("/reset/{user_id}")
+        async def reset_data(user_id: int):
+            result = self.service.reset_user_data(user_id)
             
             if result["status"] == "error":
                 raise HTTPException(status_code=500, detail=result["message"])
             
             return result
         
-
         @self.app.get("/health")
         async def health_check():
             try:
-                total_points = self.service.tracker.points_manager.get_total_points()
+                users_data = self.service.tracker.db.read_csv_safe(
+                    self.service.tracker.db.users_file
+                )
+                total_users = len(users_data)
+                
                 return {
                     "status": "healthy",
-                    "database": "connected",
+                    "database": "CSV files accessible",
                     "timestamp": datetime.now().isoformat(),
-                    "sample_data": f"Total points in system: {total_points}"
+                    "sample_data": f"Total users in system: {total_users}",
+                    "data_directory": self.service.tracker.db.data_dir
                 }
             except Exception as e:
-                raise HTTPException(status_code=503, detail=f"Service unhealthy: {str(e)}")
+                raise HTTPException(
+                    status_code=503, 
+                    detail=f"Service unhealthy: {str(e)}"
+                )
         
-
-        @self.app.get("/history")
-        async def get_action_history():
+        @self.app.get("/history/{user_id}")
+        async def get_action_history(user_id: int):
             try:
-                history = self.service.tracker.action_manager.get_action_history()
+                self.service.tracker.set_current_user(user_id)
+                history = self.service.tracker.action_manager.get_action_history(user_id)
                 formatted_history = [
                     {
                         "action": action,
@@ -245,14 +339,17 @@ class EcoBackendApp:
                     "total_count": len(history)
                 }
             except Exception as e:
-                raise HTTPException(status_code=500, detail=f"Failed to get history: {str(e)}")
+                raise HTTPException(
+                    status_code=500, 
+                    detail=f"Failed to get history: {str(e)}"
+                )
         
-
-        @self.app.get("/impact")
-        async def get_environmental_impact():
+        @self.app.get("/impact/{user_id}")
+        async def get_environmental_impact(user_id: int):
             try:
-                weekly_impact = self.service.tracker.impact_manager.get_weekly_impact()
-                total_impact = self.service.tracker.impact_manager.calculate_total_impact()
+                self.service.tracker.set_current_user(user_id)
+                weekly_impact = self.service.tracker.impact_manager.get_weekly_impact(user_id)
+                total_impact = self.service.tracker.impact_manager.calculate_total_impact(user_id)
         
                 return {
                     "status": "success",
@@ -270,26 +367,56 @@ class EcoBackendApp:
                     }
                 }
             except Exception as e:
-                raise HTTPException(status_code=500, detail=f"Failed to get impact: {str(e)}")
+                raise HTTPException(
+                    status_code=500, 
+                    detail=f"Failed to get impact: {str(e)}"
+                )
 
-
-app = FastAPI()
-
-@app.get("/")
-def read_root():
-    return {"message": "Eco backend working!"}
-
-@app.post("/log")
-def log_action(action: str):
-    return {"status": "success", "logged_action": action}
+        @self.app.get("/debug/files")
+        async def debug_files():
+            """Debug endpoint to check file status"""
+            import os
+            try:
+                data_dir = self.service.tracker.db.data_dir
+                files_info = {}
+                
+                files_to_check = [
+                    "users.csv", "actions.csv", "challenges.csv", "streak_data.csv"
+                ]
+                
+                for filename in files_to_check:
+                    filepath = os.path.join(data_dir, filename)
+                    files_info[filename] = {
+                        "exists": os.path.exists(filepath),
+                        "size": os.path.getsize(filepath) if os.path.exists(filepath) else 0,
+                        "path": filepath
+                    }
+                
+                return {
+                    "status": "success",
+                    "data_directory": data_dir,
+                    "files": files_info
+                }
+            except Exception as e:
+                raise HTTPException(
+                    status_code=500, 
+                    detail=f"Debug failed: {str(e)}"
+                )
 
 eco_app = EcoBackendApp()
-new_app = eco_app.app
-
+app = eco_app.app
 
 if __name__ == "__main__":
-    print("🚀 Starting Eco Tracker Backend (Object-Oriented Version)")
-    print("📡 API Documentation available at: http://localhost:8000/docs")
+    print("🚀 Starting Round-2-Eco Backend Server")
+    print("📊 Using CSV File Database System")
+    print("📡 API Documentation: http://localhost:8000/docs")
     print("🔍 Health Check: http://localhost:8000/health")
+    print("🐛 Debug Files: http://localhost:8000/debug/files")
+    print("=" * 50)
 
-    uvicorn.run(new_app, host="0.0.0.0", port=8000, reload=True)
+    try:
+        uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+    except KeyboardInterrupt:
+        print("\n👋 Backend server stopped gracefully")
+    except Exception as e:
+        print(f"❌ Server error: {e}")
