@@ -1,0 +1,13 @@
+id,user_id,name,description,target_count,current_count,completed,created_date,completed_date
+1,1,Eco Beginner,Complete 10 eco-actions,10,0,False,2025-07-24 02:47:25,
+2,1,Green Warrior,Complete 20 eco-actions in a month,20,0,False,2025-07-24 02:47:25,
+3,1,Eco Champion,Complete 50 eco-actions,50,0,False,2025-07-24 02:47:25,
+4,1,Planet Protector,Complete 100 eco-actions,100,0,False,2025-07-24 02:47:25,
+5,1,Recycling Master,Recycle 15 times,15,0,False,2025-07-24 02:47:25,
+6,1,Transport Hero,Use eco-transport 25 times,25,0,False,2025-07-24 02:47:25,
+7,2,Eco Beginner,Complete 10 eco-actions,10,0,False,2025-07-24 02:59:24,
+8,2,Green Warrior,Complete 20 eco-actions in a month,20,0,False,2025-07-24 02:59:24,
+9,2,Eco Champion,Complete 50 eco-actions,50,0,False,2025-07-24 02:59:24,
+10,2,Planet Protector,Complete 100 eco-actions,100,0,False,2025-07-24 02:59:24,
+11,2,Recycling Master,Recycle 15 times,15,0,False,2025-07-24 02:59:24,
+12,2,Transport Hero,Use eco-transport 25 times,25,0,False,2025-07-24 02:59:24,
