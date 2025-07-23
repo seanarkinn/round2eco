@@ -34,5 +34,4 @@ as a group. It uses Python as its coding language and other tools to keep it sim
 
 1. Open a terminal
 2. Install Flet, matplotlib, fastapi, pydantic, uvicorn (pip install flet matplotlib fastapi pydantic uvicorn)
-5. Run python db.py to initialize local database
-6. Run python main.py
+3. Run python main.py
